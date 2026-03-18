@@ -24,6 +24,7 @@ Run the automated startup script. This will build the lightweight images, establ
 
 ```bash
 ./start_local.sh
+```
 
 ### 3. Access the Dashboard
 Once the script says Admin user successfully verified!, wait about 10-20 seconds for the webserver workers to warm up.
@@ -49,3 +50,4 @@ To stop the environment and completely wipe the state (including the local datab
 '''Bash
 docker compose down --volumes --remove-orphans
 rm -rf ./logs/*
+```
