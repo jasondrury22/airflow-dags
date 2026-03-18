@@ -1,0 +1,61 @@
+# Dockerfile.local
+FROM apache/airflow:2.10.5-python3.12
+
+USER root
+# We removed gcc and g++ because we no longer need to compile heavy C++ packages!
+RUN apt-get update && apt-get install -y git && apt-get clean
+
+USER airflow
+
+COPY --chown=airflow:root src /opt/airflow/dags/src
+COPY --chown=airflow:root pyproject.toml /opt/airflow/dags/pyproject.toml
+
+ARG CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-2.10.5/constraints-3.12.txt"
+
+# STEP 1: Install ONLY the lightweight core Airflow providers
+RUN pip install --no-cache-dir \
+    "apache-airflow==2.10.5" \
+    "apache-airflow-providers-amazon" \
+    "apache-airflow-providers-slack" \
+    --constraint "${CONSTRAINT_URL}"
+
+# STEP 2: Install your local code with the --no-deps flag!
+# This crucial flag tells pip: "Install the local code, but completely IGNORE
+# the pyproject.toml requirements so we don't accidentally download PyTorch."
+RUN pip install -e /opt/airflow/dags --no-deps
+
+# STEP 3: The Magic Trick
+# We dynamically create an Airflow settings file that intercepts and mocks
+# the heavy ML imports so the DAGs don't crash when they can't find them.
+RUN mkdir -p /opt/airflow/config
+COPY <<EOF /opt/airflow/config/airflow_local_settings.py
+import sys
+from unittest.mock import MagicMock
+
+# Create a fake module that absorbs any function call or attribute request
+class MockMLPackage(MagicMock):
+    pass
+
+# Inject the fakes directly into Python's system modules
+# Mock every heavy dependency found in the open-source project
+# so the local environment stays fast and light.
+MOCK_MODULES = [
+    'pvnet',
+    'ocf_datapipes',
+    'icechunk',
+    'xarray',
+    'zarr',
+    'dask',
+    'pandas',
+    'numpy'
+]
+
+for mod in MOCK_MODULES:
+    sys.modules[mod] = MockMLPackage()
+EOF
+
+# Ensure Airflow knows where to find the local settings file
+ENV PYTHONPATH="/opt/airflow/config:/opt/airflow/src"
+
+ENTRYPOINT ["/usr/bin/dumb-init", "--", "/entrypoint"]
+CMD []

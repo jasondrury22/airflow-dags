@@ -1,0 +1,66 @@
+services:
+  scheduler:
+    image: airflow-local-scheduler:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+    volumes:
+      - ./src:/opt/airflow/src
+      # WE CAN UNCOMMENT THIS NOW:
+      - ./src/airflow_dags/dags:/opt/airflow/dags
+      - ./src/airflow_dags/plugins:/opt/airflow/plugins
+      - ./logs:/opt/airflow/logs
+    environment:
+      PYTHONPATH: "/opt/airflow/src"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: "sqlite:////opt/airflow/logs/airflow.db"
+      ENVIRONMENT: "dev"
+      AWS_ACCESS_KEY_ID: "dummy_key"
+      AWS_SECRET_ACCESS_KEY: "dummy_secret"
+      AWS_DEFAULT_REGION: "eu-west-1"
+    networks:
+          - airgap
+
+  webserver:
+    image: airflow-local-webserver:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+    volumes:
+      - ./src:/opt/airflow/src
+      - ./src/airflow_dags/dags:/opt/airflow/dags
+      - ./src/airflow_dags/plugins:/opt/airflow/plugins
+      - ./logs:/opt/airflow/logs
+    ports:
+          - "4040:8080"
+    environment:
+      PYTHONPATH: "/opt/airflow/src"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: "sqlite:////opt/airflow/logs/airflow.db"
+      ENVIRONMENT: "dev"
+      AWS_ACCESS_KEY_ID: "dummy_key"
+      AWS_SECRET_ACCESS_KEY: "dummy_secret"
+      AWS_DEFAULT_REGION: "eu-west-1"
+      AIRFLOW__WEBSERVER__WORKERS: "1"
+      # --- ADD THESE TWO LINES BACK IN ---
+      AIRFLOW__WEBSERVER__WORKER_CLASS: "gevent"
+      _AIRFLOW_PATCH_GEVENT: "1"
+      # --- THE REAL FIX: STOP THE 30-SECOND ASSASSIN ---
+      AIRFLOW__WEBSERVER__WEB_SERVER_WORKER_TIMEOUT: "300"
+      AIRFLOW__WEBSERVER__WEB_SERVER_MASTER_TIMEOUT: "300"
+      # --- NEW: FORCE THE NETWORK BINDING ---
+      AIRFLOW__WEBSERVER__WEB_SERVER_HOST: "0.0.0.0"
+      AIRFLOW__WEBSERVER__WEB_SERVER_PORT: "8080"
+    networks:
+          - airgap     # Talks to the scheduler securely
+          - ui-bridge  # Opens the door for your browser
+    # 1. Disable the base-file healthchecks
+    healthcheck:
+      disable: true
+    # This explicitly deletes the hidden base hook entirely so it cannot run.
+    post_start: !reset [ ]
+
+# --- THE SECURE NETWORK MAP ---
+networks:
+  airgap:
+    internal: true  # Blocks internet access
+  ui-bridge:
+    driver: bridge  # Allows localhost port mapping
