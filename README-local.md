@@ -48,7 +48,7 @@ The mocked Python libraries (xarray, pandas, etc.) act as structural placeholder
 ## Teardown
 To stop the environment and completely wipe the state (including the local database):
 
-'''Bash
+```bash
 docker compose down --volumes --remove-orphans
 rm -rf ./logs/*
 ```
