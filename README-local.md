@@ -18,6 +18,7 @@ If you have run previous versions of this environment, clear out the old SQLite 
 ```bash
 rm -rf ./logs/*
 docker compose down --volumes --remove-orphans
+```
 
 ### 2. Boot the Environment
 Run the automated startup script. This will build the lightweight images, establish the secure networks, and configure the database.
