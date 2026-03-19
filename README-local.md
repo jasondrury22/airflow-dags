@@ -7,7 +7,6 @@ This project includes a custom, fast local development sandbox. It is designed t
 * **Ultra-Lightweight:** Bypasses heavy C++ compilations and large ML libraries (like `xarray`, `zarr`, `pvnet`, etc.) by dynamically injecting `MagicMock` objects via a custom `airflow_local_settings.py`.
 * **Air-Gapped Security (DMZ):** Uses a demilitarized Docker network architecture. The Scheduler is completely isolated from the internet to prevent accidental API calls or data leaks, while the Webserver bridges to `localhost` to serve the UI safely.
 * **Automated Provisioning:** A single startup script handles the database initialization, runs migrations, and provisions the default admin user automatically.
-* **Resource Optimized:** Extends Gunicorn worker timeouts and patches `gevent` to prevent the memory leaks and CPU choking common in local Airflow deployments.
 
 ## Quick Start
 
@@ -28,21 +27,19 @@ Run the automated startup script. This will build the lightweight images, establ
 ```
 
 ### 3. Access the Dashboard
-Once the script says Admin user successfully verified!, wait about 10-20 seconds for the webserver workers to warm up.
+Once the script says Admin user successfully verified!, wait about 20-30 seconds for the webserver workers to warm up.
 
 URL: http://localhost:4040
 Username: admin
 Password: admin
 
 ## Important Notes on Testing
-Because this is a highly optimized, air-gapped sandbox, you will notice specific behaviors when interacting with the DAGs:
+Because this is a optimized, air-gapped sandbox, you will notice specific behaviors when interacting with the DAGs:
 
-DAG Parsing Works: You will see all the project's DAGs load successfully in the UI. The graph views, code views, and task dependencies will render perfectly.
+DAG parsing works: You will see all the project's DAGs load successfully in the UI. The graph views, code views, and task dependencies will render perfectly.
 
-DAG Execution Will Fail: If you manually trigger a DAG, the tasks will eventually fail. This is expected and by design.
-
+DAG execution will fail: If you manually trigger a DAG, the tasks will eventually fail. This is expected and by design.
 The network airgap prevents the containers from downloading external data.
-
 The mocked Python libraries (xarray, pandas, etc.) act as structural placeholders for parsing, but do not actually process data during execution.
 
 ## Teardown
