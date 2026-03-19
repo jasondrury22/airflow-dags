@@ -2,7 +2,6 @@
 FROM apache/airflow:2.10.5-python3.12
 
 USER root
-# We removed gcc and g++ because we no longer need to compile heavy C++ packages!
 RUN apt-get update && apt-get install -y git && apt-get clean
 
 USER airflow
@@ -19,14 +18,10 @@ RUN pip install --no-cache-dir \
     "apache-airflow-providers-slack" \
     --constraint "${CONSTRAINT_URL}"
 
-# STEP 2: Install your local code with the --no-deps flag!
-# This crucial flag tells pip: "Install the local code, but completely IGNORE
-# the pyproject.toml requirements so we don't accidentally download PyTorch."
+# STEP 2: Install local code and skips large packages like PyTorch in pyproject.toml
 RUN pip install -e /opt/airflow/dags --no-deps
 
-# STEP 3: The Magic Trick
-# We dynamically create an Airflow settings file that intercepts and mocks
-# the heavy ML imports so the DAGs don't crash when they can't find them.
+# STEP 3: Intercepts and mocks heavy ML imports so DAGs don't crash
 RUN mkdir -p /opt/airflow/config
 COPY <<EOF /opt/airflow/config/airflow_local_settings.py
 import sys
