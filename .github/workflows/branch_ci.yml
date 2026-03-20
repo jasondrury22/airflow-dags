@@ -6,7 +6,7 @@ on:
     branches-ignore: [ "main" ]
     paths-ignore: ['README.md']
   pull_request:
-    types: [ "opened", "reopened", "edited" ]
+    types: [ "opened", "reopened", "synchronize" ]
     paths-ignore: [ "README.md" ]
 
 jobs:
